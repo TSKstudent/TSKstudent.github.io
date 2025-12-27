@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Research Viewer</title>
+    <style>
+        /* --- PASTE ALL YOUR ORIGINAL CSS FROM index.html HERE --- */
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
+        :root { --primary: #3b82f6; --secondary: #1d4ed8; --bg-color: #000000; --text-main: #e2e8f0; --text-dim: #94a3b8; --divider: rgba(59, 130, 246, 0.3); --shadow-color: rgba(0, 0, 0, 1); --base-font-size: 1.15rem; }
+        body.light-mode { --bg-color: #f8fafc; --text-main: #0f172a; --text-dim: #475569; --divider: rgba(0, 0, 0, 0.1); --shadow-color: rgba(255, 255, 255, 0.8); }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Rajdhani', sans-serif; height: 100vh; overflow: hidden; position: relative; }
+        #canvas-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        .interface-wrapper { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-width: 1000px; height: 80vh; z-index: 10; display: flex; flex-direction: column; pointer-events: none; }
+        .floating-container { pointer-events: auto; background: transparent; width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; text-shadow: 0 2px 4px var(--shadow-color); }
+        .tabs { display: flex; border-bottom: 1px solid var(--divider); margin-bottom: 30px; padding-bottom: 10px; }
+        .tab-btn { margin-right: 30px; background: transparent; border: none; color: var(--text-dim); font-family: 'Orbitron', sans-serif; font-size: 1.2rem; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; position: relative; }
+        .tab-btn.active { color: var(--primary); text-shadow: 0 0 15px var(--primary); }
+        .tab-btn.active::after { content: ''; position: absolute; bottom: -11px; left: 0; width: 100%; height: 2px; background: var(--primary); box-shadow: 0 0 15px var(--primary); }
+        .content-viewport { flex: 1; position: relative; overflow-y: auto; overflow-x: hidden; padding-right: 15px; }
+        .tab-content { display: none; width: 100%; }
+        .tab-content.active { display: block; }
+        p { margin-bottom: 25px; line-height: 1.9; font-size: var(--base-font-size); text-align: justify; }
+        .apa-citation { margin-bottom: 25px; padding-left: 20px; border-left: 1px solid var(--secondary); font-size: calc(var(--base-font-size) * 0.95); color: var(--text-dim); }
+        .apa-citation a { color: var(--primary); text-decoration: none; display: block; margin-top: 5px; word-break: break-all; }
+        .settings-section { margin-bottom: 40px; }
+        .settings-section h3 { font-family: 'Orbitron', sans-serif; color: var(--primary); margin-bottom: 25px; border-bottom: 1px solid var(--divider); padding-bottom: 10px; }
+        .control-row { display: flex; align-items: center; margin-bottom: 25px; gap: 20px; }
+        .control-label { width: 150px; }
+        select { background: transparent; color: var(--primary); border: 1px solid var(--text-dim); padding: 8px; border-radius: 4px; cursor: pointer; }
+        input[type=range] { cursor: pointer; width: 200px; }
+        .switch { position: relative; display: inline-block; width: 46px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider-toggle { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--text-dim); transition: .4s; border-radius: 34px; }
+        .slider-toggle:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider-toggle { background-color: var(--primary); }
+        input:checked + .slider-toggle:before { transform: translateX(22px); }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--text-dim); }
+    </style>
+</head>
+<body>
+    <canvas id="canvas-bg"></canvas>
+    <div class="interface-wrapper">
+        <div class="floating-container">
+            <div class="tabs">
+                <button id="btn-research" class="tab-btn active" onclick="switchTab('research')">Research</button>
+                <button id="btn-sources" class="tab-btn" onclick="switchTab('sources')">Sources</button>
+                <button id="btn-settings" class="tab-btn" onclick="switchTab('settings')">Settings</button>
+            </div>
+            <div class="content-viewport" id="scroll-container">
+                <div id="research" class="tab-content active"></div>
+                <div id="sources" class="tab-content"></div>
+                <div id="settings" class="tab-content">
+                    <!-- Settings content same as before -->
+                    <div class="settings-section">
+                        <h3>Interface</h3>
+                        <div class="control-row">
+                            <span class="control-label">Theme Mode</span>
+                            <label class="switch"><input type="checkbox" id="themeToggle" onchange="toggleTheme()"><span class="slider-toggle"></span></label>
+                        </div>
+                        <div class="control-row">
+                            <span class="control-label">Color Theme</span>
+                            <select onchange="changeColorTheme(this.value)">
+                                <option value="blue">Royal Blue</option>
+                                <option value="cyan">Retro Cyan</option>
+                                <option value="green">Emerald Green</option>
+                                <option value="red">Crimson Red</option>
+                                <option value="purple">Neon Purple</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DYNAMIC LOADER FIX FOR GITHUB PAGES
+        const params = new URLSearchParams(window.location.search);
+        const topic = params.get('topic') || 'vr';
+        
+        // We use document.write to ensure these load synchronously in order
+        document.write('<script src="content_' + topic + '.js"><\/script>');
+        document.write('<script src="logic.js"><\/script>');
+    </script>
+</body>
+</html>
